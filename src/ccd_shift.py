@@ -58,14 +58,25 @@ def task(args):
     return out
 
 
+def _rankavg(x):
+    """Ranks 1..n with ties given their average rank."""
+    o = np.argsort(x, kind='mergesort'); xs = x[o]
+    r = np.empty(x.size); i = 0
+    while i < x.size:
+        j = i
+        while j + 1 < x.size and xs[j + 1] == xs[i]:
+            j += 1
+        r[o[i:j + 1]] = 0.5 * (i + j) + 1.0; i = j + 1
+    return r
+
+
 def auc(score, y):
     """AUC of a low radius as a predictor of reversal: P(score_rev < score_kept), ties 1/2."""
-    from scipy.stats import rankdata
     score = np.asarray(score, float); y = np.asarray(y, bool)
     pos, neg = score[y], score[~y]
     if pos.size == 0 or neg.size == 0:
         return float('nan')
-    rk = rankdata(np.concatenate([neg, pos]))
+    rk = _rankavg(np.concatenate([neg, pos]))
     return float((rk[:neg.size].sum() - neg.size * (neg.size + 1) / 2) / (pos.size * neg.size))
 
 
